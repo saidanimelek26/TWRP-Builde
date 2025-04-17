@@ -68,6 +68,14 @@ jobs:
     - name: Cleanup
       uses: rokibhasansagar/slimhub_actions@main
 
+    - name: Enable 32-bit Architecture
+      run: |
+        sudo dpkg --add-architecture i386
+        sudo apt update
+        sudo apt install -y libc6:i386 libncurses5:i386 libstdc++6:i386 zlib1g:i386
+      continue-on-error: true
+      # Note: Enables 32-bit support for twrp-7.1 (Android 7.1)
+
     - name: Prepare the environment
       run: |
         sudo apt update && sudo apt upgrade -y
@@ -78,19 +86,18 @@ jobs:
             xsltproc bc ccache liblz4-tool libsdl1.2-dev \
             libwxgtk3.0-gtk3-dev libxml2 lzop pngcrush schedtool squashfs-tools \
             imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-12-dev python3 tar
-      # Notes for Android 7 (twrp-7.1):
-      # - Replaced libwxgtk3.2-dev with libwxgtk3.0-gtk3-dev (available in Ubuntu 22.04)
+      # Notes for twrp-7.1:
+      # - Replaced libwxgtk3.2-dev with libwxgtk3.0-gtk3-dev
       # - Replaced lib32ncurses5-dev with libncurses5-dev
       # - Replaced lib32z1-dev with zlib1g-dev
-      # - Removed lib32readline-dev (not needed for TWRP 7.1)
-      # - Replaced gcc-10-multilib, g++-10-multilib with gcc-multilib, g++-multilib (uses GCC 11)
+      # - Removed lib32readline-dev (not needed)
+      # - Uses gcc-multilib, g++-multilib for GCC 11
 
     - name: Install OpenJDK
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '11'
-      fortsatt
 
     - name: Setup SSH Keys
       if: ${{ startsWith(github.event.inputs.MANIFEST_URL, 'git@github.com') || 
@@ -104,9 +111,10 @@ jobs:
     - name: Install repo
       run: |
         mkdir ~/bin
-        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        curl https://storage.googleapis.com/git-repo-downloads/repo-1 > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
+      # Note: Uses repo-1 for Python 2 compatibility
 
     - name: Initialize repo
       run: |
@@ -160,7 +168,21 @@ jobs:
         sudo make altinstall
         sudo ln -sf /usr/local/bin/python2.7 /usr/bin/python
       continue-on-error: true
-      # Note: Python 2 is required for twrp-7.1 (Android 7.1 compatibility)
+      # Note: Python 2.7.18 is required for twrp-7.1
+
+    - name: Verify Python 2
+      run: |
+        /usr/local/bin/python2.7 --version
+      continue-on-error: true
+
+    - name: Install GCC 7
+      run: |
+        sudo apt update
+        sudo apt install -y gcc-7 g++-7 gcc-7-multilib g++-7-multilib
+        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 70
+        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-7 70
+      continue-on-error: true
+      # Note: GCC 7 is closer to the toolchain used for twrp-7.1
 
     - name: Building recovery
       run: |
