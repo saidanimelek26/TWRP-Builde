@@ -108,13 +108,37 @@ jobs:
           ssh-private-key: |
             ${{ secrets.SSH_PRIVATE_KEY }}
 
+    - name: Install Python 2
+      run: |
+        sudo apt update
+        sudo apt install -y wget build-essential zlib1g-dev libssl-dev libffi-dev
+        wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
+        tar -xzf Python-2.7.18.tgz
+        cd Python-2.7.18
+        ./configure --enable-optimizations
+        make -j$(nproc)
+        sudo make altinstall
+        sudo ln -sf /usr/local/bin/python2.7 /usr/bin/python
+      continue-on-error: true
+      # Note: Python 2.7.18 is required for twrp-7.1
+
+    - name: Verify Python 2
+      run: |
+        /usr/local/bin/python2.7 --version
+      continue-on-error: true
+
     - name: Install repo
       run: |
         mkdir ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo-1 > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
-      # Note: Uses repo-1 for Python 2 compatibility
+      # Note: Uses repo-1 for Python 2 compatibility with twrp-7.1
+
+    - name: Verify repo
+      run: |
+        repo --version
+      continue-on-error: true
 
     - name: Initialize repo
       run: |
@@ -155,25 +179,6 @@ jobs:
       uses: pierotofy/set-swap-space@master
       with:
         swap-size-gb: 12
-
-    - name: Install Python 2
-      run: |
-        sudo apt update
-        sudo apt install -y wget build-essential zlib1g-dev libssl-dev libffi-dev
-        wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
-        tar -xzf Python-2.7.18.tgz
-        cd Python-2.7.18
-        ./configure --enable-optimizations
-        make -j$(nproc)
-        sudo make altinstall
-        sudo ln -sf /usr/local/bin/python2.7 /usr/bin/python
-      continue-on-error: true
-      # Note: Python 2.7.18 is required for twrp-7.1
-
-    - name: Verify Python 2
-      run: |
-        /usr/local/bin/python2.7 --version
-      continue-on-error: true
 
     - name: Install GCC 7
       run: |
