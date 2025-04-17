@@ -45,7 +45,7 @@ on:
 jobs:
   build:
     if: github.event.repository.owner.id == github.event.sender.id
-    runs-on: ubuntu-22.04  # Updated to ubuntu-22.04
+    runs-on: ubuntu-22.04
     permissions:
       contents: write
     steps:
@@ -74,17 +74,23 @@ jobs:
         DEBIAN_FRONTEND=noninteractive sudo apt install -yq \
             linux-modules-extra-$(uname -r) \
             gperf gcc-multilib g++-multilib \
-            libc6-dev libncurses5-dev x11proto-core-dev libx11-dev tree lib32z1-dev libgl1-mesa-dev libxml2-utils \
+            libc6-dev libncurses5-dev x11proto-core-dev libx11-dev tree zlib1g-dev libgl1-mesa-dev libxml2-utils \
             xsltproc bc ccache liblz4-tool libsdl1.2-dev \
-            libwxgtk3.2-dev libxml2 lzop pngcrush schedtool squashfs-tools \
-            imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-12-dev libncurses5 python3 tar
-            # Note: Removed unavailable packages like lib32ncurses5-dev, gcc-10-multilib, g++-10-multilib
+            libwxgtk3.0-gtk3-dev libxml2 lzop pngcrush schedtool squashfs-tools \
+            imagemagick libbz2-dev lzma ncftp qemu-user-static libstdc++-12-dev python3 tar
+      # Notes for Android 7 (twrp-7.1):
+      # - Replaced libwxgtk3.2-dev with libwxgtk3.0-gtk3-dev (available in Ubuntu 22.04)
+      # - Replaced lib32ncurses5-dev with libncurses5-dev
+      # - Replaced lib32z1-dev with zlib1g-dev
+      # - Removed lib32readline-dev (not needed for TWRP 7.1)
+      # - Replaced gcc-10-multilib, g++-10-multilib with gcc-multilib, g++-multilib (uses GCC 11)
 
     - name: Install OpenJDK
       uses: actions/setup-java@v4
       with:
         distribution: 'zulu'
         java-version: '11'
+      fortsatt
 
     - name: Setup SSH Keys
       if: ${{ startsWith(github.event.inputs.MANIFEST_URL, 'git@github.com') || 
@@ -145,7 +151,7 @@ jobs:
     - name: Install Python 2
       run: |
         sudo apt update
-        sudo apt install -y wget build-essential zlib1g-dev libssl-dev
+        sudo apt install -y wget build-essential zlib1g-dev libssl-dev libffi-dev
         wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
         tar -xzf Python-2.7.18.tgz
         cd Python-2.7.18
@@ -154,6 +160,7 @@ jobs:
         sudo make altinstall
         sudo ln -sf /usr/local/bin/python2.7 /usr/bin/python
       continue-on-error: true
+      # Note: Python 2 is required for twrp-7.1 (Android 7.1 compatibility)
 
     - name: Building recovery
       run: |
